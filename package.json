@@ -1,0 +1,17 @@
+{
+  "name": "llm-governance-core",
+  "version": "1.0.0",
+  "main": "dist/sdk.js",
+  "types": "dist/sdk.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "node --experimental-strip-types tests/governance.test.ts"
+  },
+  "dependencies": {
+    "claude-flow": "^2.7.47"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0"
+  }
+}
