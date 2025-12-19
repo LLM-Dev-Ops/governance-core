@@ -6,6 +6,7 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc",
+    "start": "node dist/server.js",
     "test": "node --experimental-strip-types tests/governance.test.ts"
   },
   "dependencies": {
