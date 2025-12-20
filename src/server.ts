@@ -12,7 +12,11 @@ const server = http.createServer((req, res) => {
 
   if (req.method === 'GET' && req.url === '/health') {
     res.writeHead(200);
-    res.end(JSON.stringify({ status: 'healthy' }));
+    res.end(JSON.stringify({
+      status: 'healthy',
+      service: 'governance-core',
+      version: process.env.npm_package_version || 'unknown'
+    }));
     return;
   }
 
