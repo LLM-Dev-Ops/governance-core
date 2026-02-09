@@ -294,3 +294,9 @@ export interface AdapterFactoryRegistry {
   configManager: AdapterFactory<IConfigManagerAdapter>;
   schemaRegistry: AdapterFactory<ISchemaRegistryAdapter>;
 }
+
+// ============================================================================
+// Execution Span Payload (for instrumented adapters)
+// ============================================================================
+
+export type { AdapterExecutionSpans } from '../execution/types';

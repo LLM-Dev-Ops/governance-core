@@ -16,6 +16,7 @@ export const VERSION = '1.0.0';
 // ============================================================================
 
 export { GovernanceCore, createGovernanceCore } from './lib';
+export type { ExecutionOptions } from './lib';
 
 // ============================================================================
 // Core Types
@@ -55,6 +56,36 @@ export {
   AuditAggregationService,
   FinOpsOrchestrationService,
 } from './services';
+
+// ============================================================================
+// Execution Spans (Agentics Execution Engine)
+// ============================================================================
+
+export type {
+  SpanType,
+  SpanStatus,
+  EvidenceReference,
+  SpanArtifact,
+  ExecutionSpanBase,
+  CoreExecutionSpan,
+  RepoExecutionSpan,
+  AgentExecutionSpan,
+  ExecutionSpan,
+  ExecutionGraph,
+  CoreExecutionResult,
+  AdapterExecutionSpans,
+} from './execution/types';
+
+export { hasExecutionSpans } from './execution/types';
+export { ExecutionContext } from './execution/context';
+export {
+  generateSpanId,
+  createCoreSpan,
+  createRepoSpan,
+  closeSpan,
+  createArtifact,
+  countSpans,
+} from './execution/spans';
 
 // ============================================================================
 // Default Export
