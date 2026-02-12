@@ -46,6 +46,66 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && req.url === '/gate') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body);
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          accepted: true,
+          requestId: parsed.requestId || null,
+          message: 'Governance gate enforcement requires configured adapters. Use the SDK for full execution with span instrumentation.',
+        }));
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/export') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body);
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          accepted: true,
+          exportId: parsed.exportId || null,
+          message: 'Artifact export requires a valid GateClearance from enforceGovernanceGate. Use the SDK.',
+        }));
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      }
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && req.url === '/erp-map') {
+    let body = '';
+    req.on('data', (chunk) => { body += chunk; });
+    req.on('end', () => {
+      try {
+        const parsed = JSON.parse(body);
+        res.writeHead(200);
+        res.end(JSON.stringify({
+          accepted: true,
+          mappingId: parsed.mappingId || null,
+          message: 'ERP mapping requires a valid GateClearance from enforceGovernanceGate. Use the SDK.',
+        }));
+      } catch {
+        res.writeHead(400);
+        res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      }
+    });
+    return;
+  }
+
   res.writeHead(404);
   res.end(JSON.stringify({ error: 'Not found' }));
 });

@@ -11,6 +11,12 @@ import type {
   RBACContext,
   FinOpsSummary,
   AuditSignal,
+  GovernanceGateResult,
+  GateClearance,
+  ArtifactExportRequest,
+  ArtifactExportResult,
+  ERPMappingRequest,
+  ERPMappingResult,
 } from '../types.js';
 
 // ============================================================================
@@ -25,6 +31,9 @@ export interface GovernanceCore {
   resolveRBAC(principal: string): Promise<RBACContext>;
   getFinOpsSummary(resourceId: string): Promise<FinOpsSummary>;
   emitAuditSignal(signal: AuditSignal): Promise<void>;
+  enforceGovernanceGate(request: GovernanceRequest): Promise<GovernanceGateResult>;
+  exportArtifacts(request: ArtifactExportRequest, clearance: GateClearance): Promise<ArtifactExportResult>;
+  mapToERP(request: ERPMappingRequest, clearance: GateClearance): Promise<ERPMappingResult>;
 }
 
 // ============================================================================
@@ -189,4 +198,87 @@ export async function handleAuditEmission(
 
   // Delegate to core orchestration
   await core.emitAuditSignal(signal);
+}
+
+// ============================================================================
+// Governance Gate Validation Helpers
+// ============================================================================
+
+function validateExportRequest(request: unknown): asserts request is ArtifactExportRequest {
+  if (!request || typeof request !== 'object') {
+    throw new Error('Invalid export request: must be an object');
+  }
+
+  const req = request as Record<string, unknown>;
+
+  if (!req.exportId || typeof req.exportId !== 'string' || req.exportId.trim() === '') {
+    throw new Error('Invalid export request: exportId must be a non-empty string');
+  }
+
+  if (!Array.isArray(req.artifactIds) || req.artifactIds.length === 0) {
+    throw new Error('Invalid export request: artifactIds must be a non-empty array');
+  }
+
+  if (!req.destination || typeof req.destination !== 'string' || req.destination.trim() === '') {
+    throw new Error('Invalid export request: destination must be a non-empty string');
+  }
+}
+
+function validateERPRequest(request: unknown): asserts request is ERPMappingRequest {
+  if (!request || typeof request !== 'object') {
+    throw new Error('Invalid ERP mapping request: must be an object');
+  }
+
+  const req = request as Record<string, unknown>;
+
+  if (!req.mappingId || typeof req.mappingId !== 'string' || req.mappingId.trim() === '') {
+    throw new Error('Invalid ERP mapping request: mappingId must be a non-empty string');
+  }
+
+  if (!req.erpSystem || typeof req.erpSystem !== 'string' || req.erpSystem.trim() === '') {
+    throw new Error('Invalid ERP mapping request: erpSystem must be a non-empty string');
+  }
+
+  if (!Array.isArray(req.resourceIds) || req.resourceIds.length === 0) {
+    throw new Error('Invalid ERP mapping request: resourceIds must be a non-empty array');
+  }
+}
+
+// ============================================================================
+// Governance Gate Handler Functions
+// ============================================================================
+
+/**
+ * Handles governance gate enforcement
+ */
+export async function handleGovernanceGate(
+  request: GovernanceRequest,
+  core: GovernanceCore
+): Promise<GovernanceGateResult> {
+  validateGovernanceRequest(request);
+  return await core.enforceGovernanceGate(request);
+}
+
+/**
+ * Handles artifact export with clearance validation
+ */
+export async function handleArtifactExport(
+  request: ArtifactExportRequest,
+  clearance: GateClearance,
+  core: GovernanceCore
+): Promise<ArtifactExportResult> {
+  validateExportRequest(request);
+  return await core.exportArtifacts(request, clearance);
+}
+
+/**
+ * Handles ERP mapping with clearance validation
+ */
+export async function handleERPMapping(
+  request: ERPMappingRequest,
+  clearance: GateClearance,
+  core: GovernanceCore
+): Promise<ERPMappingResult> {
+  validateERPRequest(request);
+  return await core.mapToERP(request, clearance);
 }

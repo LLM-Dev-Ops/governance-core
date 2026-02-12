@@ -118,3 +118,162 @@ export interface RBACContext {
   /** Scope or boundary for the permissions (e.g., org, project, resource) */
   scope?: string;
 }
+
+// ============================================================================
+// Governance Gate Types
+// ============================================================================
+
+/**
+ * Compliance posture produced by evaluating all mandatory governance adapters.
+ * Represents the aggregate compliance state at a point in time.
+ */
+export interface CompliancePosture {
+  /** Overall compliance status */
+  status: 'compliant' | 'non_compliant' | 'degraded';
+
+  /** Policy evaluation outcome */
+  policyCompliance: {
+    allowed: boolean;
+    appliedPolicies: string[];
+    reasons: string[];
+  };
+
+  /** Cost attribution and budget impact */
+  costAttribution: {
+    resourceId: string;
+    currentCost: number;
+    forecastedCost: number;
+    budgetStatus: 'within' | 'warning' | 'exceeded';
+    currency: string;
+  };
+
+  /** Dashboard health at time of evaluation */
+  dashboardHealth: {
+    healthy: boolean;
+    details: Record<string, unknown>;
+  };
+
+  /** ISO-8601 timestamp when posture was evaluated */
+  evaluatedAt: string;
+}
+
+/**
+ * Clearance token proving a governance gate was successfully passed.
+ * Contains a hash of the execution graph for tamper detection.
+ */
+export interface GateClearance {
+  /** Unique clearance identifier */
+  clearanceId: string;
+
+  /** The request ID this clearance was issued for */
+  requestId: string;
+
+  /** ISO-8601 timestamp when clearance was issued */
+  issuedAt: string;
+
+  /** ISO-8601 timestamp when clearance expires */
+  expiresAt: string;
+
+  /** SHA-256 hash of the serialized ExecutionGraph */
+  executionGraphHash: string;
+
+  /** Names of the mandatory adapters that were successfully invoked */
+  attestedAdapters: string[];
+
+  /** The compliance posture at time of clearance */
+  postureSnapshot: CompliancePosture;
+}
+
+/**
+ * Result of the mandatory governance gate evaluation.
+ */
+export interface GovernanceGateResult {
+  /** Whether the gate passed (all three mandatory adapters succeeded) */
+  passed: boolean;
+
+  /** The compliance posture assembled from all adapter results */
+  posture: CompliancePosture;
+
+  /** Clearance token — only present when gate passed */
+  clearance?: GateClearance;
+
+  /** Human-readable reasons for gate failure, if any */
+  failureReasons: string[];
+
+  /** The underlying governance decision */
+  decision: GovernanceDecision;
+}
+
+/**
+ * Request to export artifacts, requiring prior governance gate clearance.
+ */
+export interface ArtifactExportRequest {
+  /** Unique export request identifier */
+  exportId: string;
+
+  /** Identifiers of artifacts to export */
+  artifactIds: string[];
+
+  /** Target destination */
+  destination: string;
+
+  /** Format for export */
+  format?: string;
+
+  /** Additional export metadata */
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Result of an artifact export operation.
+ */
+export interface ArtifactExportResult {
+  /** The export request identifier */
+  exportId: string;
+
+  /** Whether the export succeeded */
+  success: boolean;
+
+  /** URIs of exported artifacts */
+  exportedUris: string[];
+
+  /** The clearance ID that authorized this export */
+  authorizedBy: string;
+}
+
+/**
+ * Request to map governance data to an ERP system, requiring prior gate clearance.
+ */
+export interface ERPMappingRequest {
+  /** Unique mapping request identifier */
+  mappingId: string;
+
+  /** Target ERP system identifier */
+  erpSystem: string;
+
+  /** Resource identifiers to map */
+  resourceIds: string[];
+
+  /** Cost center or accounting code in the ERP */
+  costCenter?: string;
+
+  /** Additional mapping parameters */
+  parameters?: Record<string, unknown>;
+}
+
+/**
+ * Result of an ERP mapping operation.
+ */
+export interface ERPMappingResult {
+  /** The mapping request identifier */
+  mappingId: string;
+
+  /** Whether the mapping succeeded */
+  success: boolean;
+
+  /** ERP-side reference identifiers created */
+  erpReferences: string[];
+
+  /** The clearance ID that authorized this mapping */
+  authorizedBy: string;
+}

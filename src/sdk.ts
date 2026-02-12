@@ -29,6 +29,13 @@ export type {
   FinOpsSummary,
   AuditSignal,
   RBACContext,
+  CompliancePosture,
+  GateClearance,
+  GovernanceGateResult,
+  ArtifactExportRequest,
+  ArtifactExportResult,
+  ERPMappingRequest,
+  ERPMappingResult,
 } from './types';
 
 // ============================================================================
