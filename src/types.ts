@@ -277,3 +277,38 @@ export interface ERPMappingResult {
   /** The clearance ID that authorized this mapping */
   authorizedBy: string;
 }
+
+// ============================================================================
+// Lifecycle Event Types
+// ============================================================================
+
+/** Lifecycle event types that GovernanceCore subscribes to */
+export type LifecycleEventType =
+  | 'plan_created'
+  | 'execution_completed'
+  | 'deployment_started';
+
+/**
+ * Inbound lifecycle event from the platform orchestration layer.
+ * GovernanceCore subscribes to these events to enforce governance on
+ * plan, execution, and deployment lifecycle stages.
+ */
+export interface LifecycleEvent {
+  /** Unique event identifier */
+  eventId: string;
+
+  /** The lifecycle event type */
+  type: LifecycleEventType;
+
+  /** ISO-8601 timestamp of when the event was produced */
+  timestamp: string;
+
+  /** Principal (user or service) that triggered the lifecycle event */
+  principal: string;
+
+  /** Resource affected by the lifecycle event */
+  resourceId: string;
+
+  /** Additional event-specific payload */
+  payload: Record<string, unknown>;
+}

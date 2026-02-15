@@ -36,6 +36,8 @@ export type {
   ArtifactExportResult,
   ERPMappingRequest,
   ERPMappingResult,
+  LifecycleEventType,
+  LifecycleEvent,
 } from './types';
 
 // ============================================================================
@@ -93,6 +95,13 @@ export {
   createArtifact,
   countSpans,
 } from './execution/spans';
+
+// ============================================================================
+// Lifecycle Subscriber
+// ============================================================================
+
+export { LifecycleSubscriber } from './lifecycle/subscriber';
+export type { LifecycleHandlerResult } from './lifecycle/subscriber';
 
 // ============================================================================
 // Default Export
