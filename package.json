@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
-    "test": "node --experimental-strip-types tests/governance.test.ts"
+    "pretest": "npm run build",
+    "test": "for f in tests/*.test.ts; do echo \"== $f\"; node --experimental-strip-types \"$f\" || exit 1; done"
   },
   "dependencies": {
     "claude-flow": "^2.7.47"

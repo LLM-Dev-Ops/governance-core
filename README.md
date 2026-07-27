@@ -159,6 +159,41 @@ import {
 - **AuditAggregationService** - Records governance decisions with schema validation
 - **FinOpsOrchestrationService** - Combines cost and analytics data
 
+## HTTP Surface
+
+The deployed server enforces the same fail-closed gate as the SDK. If the policy
+engine cannot be reached, times out, returns a non-2xx, or returns a body that does
+not parse into a decision, the gate returns `403` with `"allowed": false` and
+`"reason": "upstream_unavailable"`. There is no flag, header, or environment
+variable that converts an upstream failure into an allow.
+
+| Endpoint | Gate? | Behaviour |
+|---|---|---|
+| `POST /gate` | **Yes** | Runs `enforceGovernanceGate`. `200` with a `clearance` only when the gate passes; `403` otherwise. |
+| `POST /evaluate` | **Yes** | Runs the same gate and returns the real `policyResults`. `403` on denial or upstream failure. |
+| `POST /export` | Requires clearance | Requires a `clearance` this instance issued via `POST /gate`. `403` when absent, unrecognised, or expired. |
+| `POST /erp-map` | Requires clearance | Same clearance requirement as `/export`. |
+| `POST /v1/policy/evaluate` | **No** | Asynchronous forwarder. Returns `202` and carries **no decision** — a `202` here is not authorization. |
+| `POST /v1/compliance/record` | **No** | Asynchronous record/forward. Returns `202` and carries **no decision**. |
+
+Clearances are held in the issuing process, so a clearance is redeemable only on the
+instance that granted it.
+
+### Required configuration
+
+The process refuses to start unless every mandatory upstream URL is set — it will not
+boot into a state where the gate cannot evaluate.
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `POLICY_ENGINE_URL` | Yes | `POST /api/evaluate` — the policy authority |
+| `COSTOPS_URL` | Yes | Cost metrics, forecast, and usage events |
+| `GOVERNANCE_DASHBOARD_URL` | Yes | `GET /health` — hard-invoked by the gate |
+| `ANALYTICS_HUB_URL` | Yes | Advisory analytics events |
+| `GOVERNANCE_UPSTREAM_TIMEOUT_MS` | No | Per-request upstream timeout, default `5000` |
+| `COSTOPS_METRICS_PATH` / `COSTOPS_FORECAST_PATH` / `COSTOPS_EVENTS_PATH` | No | Override the CostOps route paths |
+| `PORT` | No | Listen port, default `8080` |
+
 ## CLI
 
 A command-line interface is available for testing:
