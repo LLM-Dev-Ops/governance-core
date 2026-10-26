@@ -8,7 +8,11 @@
  */
 
 import type { AdapterCollection } from './index';
-import { DEFAULT_UPSTREAM_TIMEOUT_MS, type HttpAdapterOptions } from './http/client';
+import {
+  DEFAULT_MAX_RESPONSE_BYTES,
+  DEFAULT_UPSTREAM_TIMEOUT_MS,
+  type HttpAdapterOptions,
+} from './http/client';
 import { HttpAnalyticsHubAdapter } from './http/analytics-hub';
 import { HttpCostOpsAdapter, type CostOpsPaths } from './http/cost-ops';
 import { HttpGovernanceDashboardAdapter } from './http/dashboard';
@@ -21,6 +25,7 @@ export interface UpstreamConfig {
   dashboardUrl: string;
   analyticsHubUrl: string;
   timeoutMs: number;
+  maxResponseBytes: number;
   costOpsPaths: CostOpsPaths;
 }
 
@@ -52,13 +57,17 @@ function readUrl(env: NodeJS.ProcessEnv, name: string): string | undefined {
   return raw;
 }
 
-function readTimeout(env: NodeJS.ProcessEnv): number {
-  const raw = env.GOVERNANCE_UPSTREAM_TIMEOUT_MS?.trim();
-  if (!raw) return DEFAULT_UPSTREAM_TIMEOUT_MS;
+function readPositiveInteger(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  defaultValue: number
+): number {
+  const raw = env[name]?.trim();
+  if (!raw) return defaultValue;
   const parsed = Number(raw);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new UpstreamConfigurationError(
-      `GOVERNANCE_UPSTREAM_TIMEOUT_MS must be a positive number of milliseconds, got "${raw}"`
+      `${name} must be a positive integer, got "${raw}"`
     );
   }
   return parsed;
@@ -66,7 +75,7 @@ function readTimeout(env: NodeJS.ProcessEnv): number {
 
 /**
  * Reads upstream configuration from the environment.
- * Throws UpstreamConfigurationError when a mandatory URL is absent or malformed.
+ * Throws UpstreamConfigurationError when a mandatory value is absent or malformed.
  */
 export function resolveUpstreamConfig(env: NodeJS.ProcessEnv = process.env): UpstreamConfig {
   const resolved: Partial<Record<(typeof REQUIRED_URLS)[number][0], string>> = {};
@@ -93,7 +102,16 @@ export function resolveUpstreamConfig(env: NodeJS.ProcessEnv = process.env): Ups
     costOpsUrl: resolved.costOpsUrl!,
     dashboardUrl: resolved.dashboardUrl!,
     analyticsHubUrl: resolved.analyticsHubUrl!,
-    timeoutMs: readTimeout(env),
+    timeoutMs: readPositiveInteger(
+      env,
+      'GOVERNANCE_UPSTREAM_TIMEOUT_MS',
+      DEFAULT_UPSTREAM_TIMEOUT_MS
+    ),
+    maxResponseBytes: readPositiveInteger(
+      env,
+      'GOVERNANCE_UPSTREAM_MAX_RESPONSE_BYTES',
+      DEFAULT_MAX_RESPONSE_BYTES
+    ),
     costOpsPaths: {
       events: env.COSTOPS_EVENTS_PATH?.trim() || undefined,
       metrics: env.COSTOPS_METRICS_PATH?.trim() || undefined,
@@ -104,7 +122,11 @@ export function resolveUpstreamConfig(env: NodeJS.ProcessEnv = process.env): Ups
 
 export function createAdapterCollection(env: NodeJS.ProcessEnv = process.env): AdapterCollection {
   const config = resolveUpstreamConfig(env);
-  const opts = (baseUrl: string): HttpAdapterOptions => ({ baseUrl, timeoutMs: config.timeoutMs });
+  const opts = (baseUrl: string): HttpAdapterOptions => ({
+    baseUrl,
+    timeoutMs: config.timeoutMs,
+    maxResponseBytes: config.maxResponseBytes,
+  });
 
   return {
     policyEngine: new HttpPolicyEngineAdapter(opts(config.policyEngineUrl)),

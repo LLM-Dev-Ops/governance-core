@@ -3,17 +3,18 @@
   "version": "1.0.0",
   "main": "dist/sdk.js",
   "types": "dist/sdk.d.ts",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "start": "node dist/server.js",
     "pretest": "npm run build",
-    "test": "for f in tests/*.test.ts; do echo \"== $f\"; node --experimental-strip-types \"$f\" || exit 1; done"
-  },
-  "dependencies": {
-    "claude-flow": "^2.7.47"
+    "test": "for f in tests/*.test.ts; do echo \"== $f\"; tsx \"$f\" || exit 1; done"
   },
   "devDependencies": {
+    "@types/node": "20.19.43",
+    "tsx": "4.23.15",
     "typescript": "^5.0.0"
   }
 }

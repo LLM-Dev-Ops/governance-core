@@ -191,6 +191,7 @@ boot into a state where the gate cannot evaluate.
 | `GOVERNANCE_DASHBOARD_URL` | Yes | `GET /health` — hard-invoked by the gate |
 | `ANALYTICS_HUB_URL` | Yes | Advisory analytics events |
 | `GOVERNANCE_UPSTREAM_TIMEOUT_MS` | No | Per-request upstream timeout, default `5000` |
+| `GOVERNANCE_UPSTREAM_MAX_RESPONSE_BYTES` | No | Maximum buffered JSON response per upstream request, default `1000000` |
 | `COSTOPS_METRICS_PATH` / `COSTOPS_FORECAST_PATH` / `COSTOPS_EVENTS_PATH` | No | Override the CostOps route paths |
 | `PORT` | No | Listen port, default `8080` |
 

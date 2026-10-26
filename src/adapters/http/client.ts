@@ -1,10 +1,10 @@
 /**
  * Awaited, response-checked JSON transport for the concrete governance adapters.
  *
- * Every failure mode — DNS, connection refused, timeout, non-2xx, unparseable
- * body — is surfaced as `AdapterResponse{success: false}`. There is no path that
- * converts a failure into a success, because `enforceGovernanceGate` treats
- * `success: false` as a hard gate failure (src/lib.ts:397-399).
+ * Every failure mode — DNS, connection refused, timeout, non-2xx, oversized,
+ * unparseable body — is surfaced as `AdapterResponse{success: false}`. There is
+ * no path that converts a failure into a success, because
+ * `enforceGovernanceGate` treats `success: false` as a hard gate failure.
  */
 
 import * as http from 'http';
@@ -13,10 +13,12 @@ import * as https from 'https';
 import type { AdapterResponse } from '../index';
 
 export const DEFAULT_UPSTREAM_TIMEOUT_MS = 5000;
+export const DEFAULT_MAX_RESPONSE_BYTES = 1_000_000;
 
 export interface HttpAdapterOptions {
   baseUrl: string;
   timeoutMs?: number;
+  maxResponseBytes?: number;
   apiKey?: string;
 }
 
@@ -31,6 +33,7 @@ function request(
   path: string,
   payload: unknown,
   timeoutMs: number,
+  maxResponseBytes: number,
   apiKey?: string
 ): Promise<RawResponse> {
   return new Promise((resolve, reject) => {
@@ -57,10 +60,41 @@ function request(
         headers,
       },
       (res) => {
-        let body = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => { body += chunk; });
-        res.on('end', () => resolve({ statusCode: res.statusCode ?? 0, body }));
+        const advertisedLength = Number(res.headers['content-length']);
+        if (Number.isFinite(advertisedLength) && advertisedLength > maxResponseBytes) {
+          res.resume();
+          reject(new Error(
+            `Upstream response exceeded ${maxResponseBytes} bytes (Content-Length: ${advertisedLength})`
+          ));
+          return;
+        }
+
+        const chunks: Buffer[] = [];
+        let responseBytes = 0;
+        let rejected = false;
+
+        res.on('data', (chunk: Buffer) => {
+          if (rejected) return;
+          responseBytes += chunk.length;
+          if (responseBytes > maxResponseBytes) {
+            rejected = true;
+            reject(new Error(`Upstream response exceeded ${maxResponseBytes} bytes`));
+            res.destroy();
+            return;
+          }
+          chunks.push(chunk);
+        });
+        res.on('error', (error) => {
+          if (!rejected) reject(error);
+        });
+        res.on('end', () => {
+          if (!rejected) {
+            resolve({
+              statusCode: res.statusCode ?? 0,
+              body: Buffer.concat(chunks, responseBytes).toString('utf8'),
+            });
+          }
+        });
       }
     );
 
@@ -92,6 +126,7 @@ async function send<T>(
       path,
       payload,
       options.timeoutMs ?? DEFAULT_UPSTREAM_TIMEOUT_MS,
+      options.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES,
       options.apiKey
     );
   } catch (error) {
